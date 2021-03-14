@@ -1,5 +1,6 @@
 import random
 import quicksort
+import itertools
 
 
 class Card:
@@ -301,36 +302,153 @@ class Game:
 
             return False
 
-    def pairs_in_hand(self,player):
-        
+    def pairs_in_hand(self, player):
+        hand = player.hand
+        current_rank = hand[0].rank
+        rank_counter = 0
+        rank_array = []
+        pairs = []
+        for i in range(len(hand)):
+            if hand[i].rank == current_rank:
+                rank_counter += 1
+                rank_array.append(i)
+
+            else:
+                if rank_counter > 1:
+                    for pair in itertools.combinations(rank_array, 2):
+                        pairs.append(list(pair))
+
+                current_rank = hand[i].rank
+                rank_counter = 1
+                rank_array = [i]
+
+        for pair in itertools.combinations(rank_array, 2):
+            pairs.append(list(pair))
+
+        return pairs
+
+    def triples_in_hand(self, player):
+        hand = player.hand
+        current_rank = hand[0].rank
+        rank_counter = 0
+        rank_array = []
+        triples = []
+        for i in range(len(hand)):
+            if hand[i].rank == current_rank:
+                rank_counter += 1
+                rank_array.append(i)
+
+            else:
+                if rank_counter > 2:
+                    for triple in itertools.combinations(rank_array, 3):
+                        triples.append(list(triple))
+
+                current_rank = hand[i].rank
+                rank_counter = 1
+                rank_array = [i]
+
+        for triple in itertools.combinations(rank_array, 3):
+            triples.append(list(triple))
+
+        return triples
+
+    def quads_in_hand(self, player):
+        hand = player.hand
+        current_rank = hand[0].rank
+        rank_counter = 0
+        rank_array = []
+        quads = []
+        for i in range(len(hand)):
+            if hand[i].rank == current_rank:
+                rank_counter += 1
+                rank_array.append(i)
+
+            else:
+                if rank_counter > 3:
+                    for quad in itertools.combinations(rank_array, 4):
+                        quads.append(list(quad))
+
+                current_rank = hand[i].rank
+                rank_counter = 1
+                rank_array = [i]
+
+        for quad in itertools.combinations(rank_array, 4):
+            quads.append(list(quad))
+
+        return quads
+
+    def straights_in_hand(self, player):
+        rank_list = []
+        for card in player.hand:
+            rank_list.append(card.rank)
+
+        rank_list_no_dupe = list(reversed(list(set(rank_list))))
+        straights =[]
+        for rank in rank_list_no_dupe:
+            if (rank + 1) % 13 in rank_list_no_dupe and\
+               (rank + 2) % 13 in rank_list_no_dupe and\
+               (rank + 3) % 13 in rank_list_no_dupe and\
+               (rank + 4) % 13 in rank_list_no_dupe and\
+               not (1 in rank_list_no_dupe and 2 in rank_list_no_dupe and 3 in rank_list_no_dupe):
+                straight_comb = []
+                for rank2 in [rank, (rank + 1) % 13, (rank + 2) % 13, (rank + 3) % 13, (rank + 4) % 13]:
+                    indexes = [index for index, elem in enumerate(rank_list) if elem == rank2]
+                    straight_comb.append(indexes)
+
+                for straight in list(itertools.product(*straight_comb)):
+                    straights.append(reversed(list(straight)))
+
+        return straights
 
     def valid_combos_in_hand(self, player):
-        hand = player.hand
         combos = []
-        if self.previous_combo == [] and (hand[0].rank != 13 or hand[0].suit != "Diamonds"):
+        if self.previous_combo == [] and self.turn != player:
             print(player.name, "has no valid combos.")
 
-        elif self.previous_combo == [] and hand[0].rank == 13 and hand[0].suit == "Diamonds":
+        elif self.previous_combo == [] and self.turn == player:
+            hand = player.hand
+
             counter = 0
             for card in hand:
-                if card.rank == 13:
-                    counter += 1
-
-                else:
+                if card.rank != hand[0].rank:
                     break
+                counter += 1
 
             if counter >= 1:
                 combos.append([0])
+                for quad in self.quads_in_hand(player):
+                    if len(set([0] + quad)) == 5:
+                        combos.append([0] + quad)
 
             if counter >= 2:
                 combos.append([0, 1])
 
+                for triple in self.triples_in_hand(player):
+                    if len(set([0, 1] + triple)) == 5:
+                        combos.append([0, 1] + triple)
+
             if counter >= 3:
-                combos.append([0, 2], [1, 2], [0, 1, 2])
-                for
+                combos.extend([[0, 2], [0, 1, 2]])
+
+                for triple in self.triples_in_hand(player):
+                    if len(set(triple + [0, 2])) == 5:
+                        combos.append(triple + [0, 2])
+
+                for pair in self.pairs_in_hand(player):
+                    if len(set([0, 1, 2] + pair)) == 5:
+                        combos.append([0, 1, 2] + pair)
 
             if counter >= 4:
-                combos.append([0, 3], [1, 3], [2, 3], [0, 1, 3], [0, 2, 3], [1, 2, 3])
+                combos.extend([[0, 3], [0, 1, 3], [0, 2, 3]])
+
+                for triple in self.triples_in_hand(player):
+                    if len(set(triple + [0, 3])) == 5:
+                        combos.append(triple + [0, 3])
+
+                for pair in self.pairs_in_hand(player):
+                    for triple in [[0, 1, 3], [0, 2, 3]]:
+                        if len(set(triple + pair)) == 5:
+                            combos.append(triple + pair)
 
                 if len(hand) != 4:
                     for i in range(4, len(hand)):
